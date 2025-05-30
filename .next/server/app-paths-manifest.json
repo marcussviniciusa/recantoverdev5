@@ -3,11 +3,9 @@
   "/api/orders/route": "app/api/orders/route.js",
   "/api/products/route": "app/api/products/route.js",
   "/api/payments/route": "app/api/payments/route.js",
-  "/api/users/route": "app/api/users/route.js",
-  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/api/reports/route": "app/api/reports/route.js",
   "/page": "app/page.js",
-  "/auth/login/page": "app/auth/login/page.js",
   "/admin/dashboard/page": "app/admin/dashboard/page.js",
-  "/admin/mesas/page": "app/admin/mesas/page.js",
-  "/admin/usuarios/page": "app/admin/usuarios/page.js"
+  "/admin/pedidos/page": "app/admin/pedidos/page.js",
+  "/admin/relatorios/page": "app/admin/relatorios/page.js"
 }

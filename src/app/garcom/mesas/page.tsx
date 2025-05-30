@@ -10,6 +10,7 @@ interface Table {
   capacity: number;
   status: 'disponivel' | 'ocupada' | 'reservada' | 'manutencao';
   currentCustomers?: number;
+  identification?: string;
   assignedWaiter?: {
     username: string;
     email: string;
@@ -22,6 +23,12 @@ export default function GarcomMesas() {
   const [tables, setTables] = useState<Table[]>([]);
   const [loading, setLoading] = useState(true);
   const [userName, setUserName] = useState('');
+  const [showOpenModal, setShowOpenModal] = useState(false);
+  const [selectedTable, setSelectedTable] = useState<Table | null>(null);
+  const [openTableForm, setOpenTableForm] = useState({
+    customers: '',
+    identification: ''
+  });
 
   useEffect(() => {
     // Verificar autenticação
@@ -59,7 +66,7 @@ export default function GarcomMesas() {
     }
   };
 
-  const updateTableStatus = async (tableId: string, status: string, currentCustomers?: number) => {
+  const updateTableStatus = async (tableId: string, status: string, currentCustomers?: number, identification?: string) => {
     try {
       const token = localStorage.getItem('token');
       const response = await fetch(`/api/tables/${tableId}`, {
@@ -71,6 +78,7 @@ export default function GarcomMesas() {
         body: JSON.stringify({ 
           status, 
           currentCustomers,
+          identification,
           assignedWaiter: status === 'ocupada' ? localStorage.getItem('userId') : undefined
         })
       });
@@ -78,6 +86,8 @@ export default function GarcomMesas() {
       const data = await response.json();
       if (data.success) {
         await loadTables(); // Recarregar mesas
+        setShowOpenModal(false);
+        setOpenTableForm({ customers: '', identification: '' });
       } else {
         alert('Erro ao atualizar mesa: ' + data.error);
       }
@@ -85,6 +95,30 @@ export default function GarcomMesas() {
       console.error('Erro ao atualizar mesa:', error);
       alert('Erro de conexão');
     }
+  };
+
+  const openTableModal = (table: Table) => {
+    setSelectedTable(table);
+    setShowOpenModal(true);
+  };
+
+  const handleOpenTable = () => {
+    if (!selectedTable || !openTableForm.customers || parseInt(openTableForm.customers) <= 0) {
+      alert('Por favor, informe o número de clientes válido');
+      return;
+    }
+
+    if (parseInt(openTableForm.customers) > selectedTable.capacity) {
+      alert(`Número de clientes não pode exceder a capacidade da mesa (${selectedTable.capacity})`);
+      return;
+    }
+
+    updateTableStatus(
+      selectedTable._id, 
+      'ocupada', 
+      parseInt(openTableForm.customers),
+      openTableForm.identification || undefined
+    );
   };
 
   const getStatusColor = (status: string) => {
@@ -230,6 +264,12 @@ export default function GarcomMesas() {
                     <span className="font-medium">{table.currentCustomers}</span>
                   </div>
                 )}
+                {table.identification && (
+                  <div className="flex justify-between">
+                    <span>Identificação:</span>
+                    <span className="font-medium text-xs text-blue-600">{table.identification}</span>
+                  </div>
+                )}
                 {table.assignedWaiter && (
                   <div className="flex justify-between">
                     <span>Garçom:</span>
@@ -242,12 +282,7 @@ export default function GarcomMesas() {
               <div className="space-y-2">
                 {table.status === 'disponivel' && (
                   <button
-                    onClick={() => {
-                      const customers = prompt('Quantos clientes?');
-                      if (customers && parseInt(customers) > 0) {
-                        updateTableStatus(table._id, 'ocupada', parseInt(customers));
-                      }
-                    }}
+                    onClick={() => openTableModal(table)}
                     className="w-full bg-green-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors"
                   >
                     Abrir Mesa
@@ -262,11 +297,17 @@ export default function GarcomMesas() {
                     >
                       Novo Pedido
                     </Link>
+                    <Link
+                      href={`/garcom/conta/${table._id}`}
+                      className="w-full bg-yellow-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-yellow-700 transition-colors text-center block"
+                    >
+                      Fechar Conta
+                    </Link>
                     <button
                       onClick={() => updateTableStatus(table._id, 'disponivel')}
                       className="w-full bg-gray-600 text-white py-2 px-4 rounded-lg text-sm font-medium hover:bg-gray-700 transition-colors"
                     >
-                      Fechar Mesa
+                      Liberar Mesa
                     </button>
                   </>
                 )}
@@ -286,6 +327,69 @@ export default function GarcomMesas() {
           </div>
         )}
       </main>
+
+      {/* Modal de Abertura de Mesa */}
+      {showOpenModal && selectedTable && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-bold text-gray-900 mb-4">
+              Abrir Mesa {selectedTable.number}
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Número de clientes *
+                </label>
+                <input
+                  type="number"
+                  min="1"
+                  max={selectedTable.capacity}
+                  value={openTableForm.customers}
+                  onChange={(e) => setOpenTableForm({...openTableForm, customers: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  placeholder={`Máximo ${selectedTable.capacity} pessoas`}
+                />
+              </div>
+              
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Identificação da mesa (opcional)
+                </label>
+                <input
+                  type="text"
+                  value={openTableForm.identification}
+                  onChange={(e) => setOpenTableForm({...openTableForm, identification: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                  placeholder="Ex: Família Silva, João, Evento..."
+                  maxLength={100}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Ajuda a identificar a mesa durante o atendimento
+                </p>
+              </div>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowOpenModal(false);
+                  setOpenTableForm({ customers: '', identification: '' });
+                }}
+                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleOpenTable}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                Abrir Mesa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Bottom Navigation */}
       <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 px-4 py-2">

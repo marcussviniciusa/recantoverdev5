@@ -42,22 +42,8 @@ const ProductSchema: Schema = new Schema({
   category: {
     type: String,
     required: [true, 'Categoria é obrigatória'],
-    enum: {
-      values: [
-        'entradas',
-        'pratos-principais',
-        'sobremesas',
-        'bebidas',
-        'petiscos',
-        'saladas',
-        'massas',
-        'carnes',
-        'frutos-mar',
-        'vegetariano',
-        'vegano'
-      ],
-      message: 'Categoria inválida'
-    }
+    trim: true,
+    maxlength: [50, 'Categoria não pode ter mais de 50 caracteres']
   },
   image: {
     type: String,
@@ -79,20 +65,7 @@ const ProductSchema: Schema = new Schema({
   allergens: [{
     type: String,
     trim: true,
-    enum: {
-      values: [
-        'gluten',
-        'lactose',
-        'ovo',
-        'soja',
-        'amendoim',
-        'castanhas',
-        'peixes',
-        'crustaceos',
-        'sementes-sesamo'
-      ],
-      message: 'Alérgeno inválido'
-    }
+    maxlength: [30, 'Alérgeno não pode ter mais de 30 caracteres']
   }],
   nutritionalInfo: {
     calories: {

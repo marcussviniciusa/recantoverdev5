@@ -8,7 +8,7 @@ export interface IPaymentMethod {
 
 export interface IPayment extends Document {
   tableId: mongoose.Types.ObjectId;
-  orderId: mongoose.Types.ObjectId;
+  orderIds: mongoose.Types.ObjectId[];
   totalAmount: number;
   paymentMethods: IPaymentMethod[];
   status: 'pendente' | 'pago' | 'cancelado';
@@ -16,6 +16,7 @@ export interface IPayment extends Document {
   remainingAmount: number;
   changeAmount?: number;
   paidAt?: Date;
+  tableIdentification?: string;
   createdAt: Date;
   updatedAt: Date;
   calculatePaidAmount(): number;
@@ -52,10 +53,10 @@ const PaymentSchema = new Schema<IPayment>({
     ref: 'Table',
     required: [true, 'ID da mesa é obrigatório']
   },
-  orderId: {
-    type: Schema.Types.ObjectId,
+  orderIds: {
+    type: [Schema.Types.ObjectId],
     ref: 'Order',
-    required: [true, 'ID do pedido é obrigatório']
+    required: [true, 'IDs dos pedidos são obrigatórios']
   },
   totalAmount: {
     type: Number,
@@ -93,6 +94,11 @@ const PaymentSchema = new Schema<IPayment>({
   },
   paidAt: {
     type: Date
+  },
+  tableIdentification: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Identificação da mesa não pode ter mais de 100 caracteres']
   }
 }, {
   timestamps: true,
@@ -102,7 +108,7 @@ const PaymentSchema = new Schema<IPayment>({
 
 // Índices para performance
 PaymentSchema.index({ tableId: 1, status: 1 });
-PaymentSchema.index({ orderId: 1 });
+PaymentSchema.index({ orderIds: 1 });
 PaymentSchema.index({ status: 1, createdAt: -1 });
 PaymentSchema.index({ createdAt: -1 });
 

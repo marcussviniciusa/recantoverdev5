@@ -6,6 +6,8 @@ export interface IUser extends Document {
   email: string;
   password: string;
   role: 'garcom' | 'recepcionista';
+  phone?: string;
+  status: 'ativo' | 'inativo';
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -37,6 +39,16 @@ const UserSchema = new Schema<IUser>({
     type: String,
     enum: ['garcom', 'recepcionista'],
     required: [true, 'Função é obrigatória']
+  },
+  phone: {
+    type: String,
+    trim: true,
+    sparse: true
+  },
+  status: {
+    type: String,
+    enum: ['ativo', 'inativo'],
+    default: 'ativo'
   },
   isActive: {
     type: Boolean,

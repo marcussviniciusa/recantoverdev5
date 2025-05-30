@@ -61,18 +61,26 @@ export async function GET(request: NextRequest) {
       .limit(limit)
       .skip(skip);
 
+    // Filtrar apenas pedidos válidos (com referências que existem)
+    const validOrders = orders.filter(order => 
+      order.tableId && 
+      order.waiterId && 
+      order.tableId.number !== undefined &&
+      order.waiterId.username !== undefined
+    );
+
     // Contar total para paginação
     const total = await Order.countDocuments(filters);
 
     return NextResponse.json({
       success: true,
       data: {
-        orders,
+        orders: validOrders,
         pagination: {
           page,
           limit,
-          total,
-          pages: Math.ceil(total / limit)
+          total: validOrders.length,
+          pages: Math.ceil(validOrders.length / limit)
         }
       },
       message: 'Pedidos recuperados com sucesso'
@@ -150,14 +158,28 @@ export async function POST(request: NextRequest) {
     }
 
     // Se for garçom, verificar se é o garçom responsável pela mesa
-    if (user.role === 'garcom' && table.assignedWaiter?.toString() !== user.id) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: 'Você não é o garçom responsável por esta mesa' 
-        },
-        { status: 403 }
-      );
+    if (user.role === 'garcom') {
+      console.log('Debug - Verificação de garçom:');
+      console.log('- user.id:', user.id);
+      console.log('- table.assignedWaiter:', table.assignedWaiter);
+      console.log('- table.assignedWaiter toString:', table.assignedWaiter?.toString());
+      
+      if (table.assignedWaiter && table.assignedWaiter.toString() !== user.id) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: `Você não é o garçom responsável por esta mesa. Mesa atribuída para: ${table.assignedWaiter}, seu ID: ${user.id}` 
+          },
+          { status: 403 }
+        );
+      }
+      
+      // Se não tem garçom atribuído, atribuir automaticamente
+      if (!table.assignedWaiter) {
+        console.log('Mesa sem garçom atribuído, atribuindo automaticamente...');
+        table.assignedWaiter = user.id as any;
+        await table.save();
+      }
     }
 
     // Validar e processar itens
@@ -246,6 +268,14 @@ export async function POST(request: NextRequest) {
     const populatedOrder = await Order.findById(newOrder._id)
       .populate('tableId', 'number capacity status')
       .populate('waiterId', 'username email');
+
+    console.log('✅ Pedido criado com sucesso!');
+    console.log('- ID do pedido:', populatedOrder._id);
+    console.log('- Mesa:', populatedOrder.tableId.number);
+    console.log('- Garçom:', populatedOrder.waiterId.username);
+    console.log('- Status:', populatedOrder.status);
+    console.log('- Total de itens:', populatedOrder.items.length);
+    console.log('- Valor total:', populatedOrder.totalAmount);
 
     return NextResponse.json({
       success: true,

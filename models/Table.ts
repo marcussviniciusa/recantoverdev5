@@ -5,6 +5,7 @@ export interface ITable extends Document {
   capacity: number;
   status: 'disponivel' | 'ocupada' | 'reservada' | 'manutencao';
   currentCustomers?: number;
+  identification?: string;
   openedAt?: Date;
   closedAt?: Date;
   assignedWaiter?: mongoose.Types.ObjectId;
@@ -40,6 +41,11 @@ const TableSchema = new Schema<ITable>({
       message: 'Número de clientes não pode exceder a capacidade da mesa'
     }
   },
+  identification: {
+    type: String,
+    trim: true,
+    maxlength: [100, 'Identificação não pode ter mais de 100 caracteres']
+  },
   openedAt: {
     type: Date
   },
@@ -69,6 +75,7 @@ TableSchema.pre('save', function(next) {
   if (this.status === 'disponivel' && this.isModified('status')) {
     this.closedAt = new Date();
     this.currentCustomers = undefined;
+    this.identification = undefined;
     this.assignedWaiter = undefined;
   }
   
@@ -76,10 +83,11 @@ TableSchema.pre('save', function(next) {
 });
 
 // Método para abrir mesa
-TableSchema.methods.openTable = function(customersCount: number, waiterId: string) {
+TableSchema.methods.openTable = function(customersCount: number, waiterId: string, identification?: string) {
   this.status = 'ocupada';
   this.currentCustomers = customersCount;
   this.assignedWaiter = waiterId;
+  this.identification = identification;
   this.openedAt = new Date();
   this.closedAt = undefined;
   return this.save();
@@ -89,6 +97,7 @@ TableSchema.methods.openTable = function(customersCount: number, waiterId: strin
 TableSchema.methods.closeTable = function() {
   this.status = 'disponivel';
   this.currentCustomers = undefined;
+  this.identification = undefined;
   this.assignedWaiter = undefined;
   this.closedAt = new Date();
   return this.save();

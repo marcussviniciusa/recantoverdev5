@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useSocket } from '../../../../lib/socket';
 
 interface Product {
   _id: string;
@@ -33,6 +34,7 @@ export default function CriarPedido() {
   const router = useRouter();
   const params = useParams();
   const tableId = params.tableId as string;
+  const { emitEvent } = useSocket();
 
   const [table, setTable] = useState<Table | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -187,6 +189,11 @@ export default function CriarPedido() {
       const data = await response.json();
 
       if (data.success) {
+        console.log('✅ Pedido criado:', data.data.order);
+        
+        // Emitir evento Socket.IO para notificar admin em tempo real
+        emitEvent('order_created', data.data.order);
+        
         alert('Pedido criado com sucesso!');
         router.push('/garcom/mesas');
       } else {

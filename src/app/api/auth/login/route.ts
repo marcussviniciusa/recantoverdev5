@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Verificar se o usuário está ativo
-    if (!user.isActive) {
+    if (!user.isActive || user.status === 'inativo') {
       return NextResponse.json(
         { 
           success: false, 

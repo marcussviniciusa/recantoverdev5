@@ -1,5 +1,4 @@
 .env.local
 node_modules
 .env
-.next/cache/webpack/client-development/*.pack.gz
-.next/cache/webpack/server-development/*.pack.gz
+.next

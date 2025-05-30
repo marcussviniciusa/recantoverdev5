@@ -132,17 +132,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const validCategories = [
-      'entradas', 'pratos-principais', 'sobremesas', 'bebidas', 
-      'petiscos', 'saladas', 'massas', 'carnes', 'frutos-mar', 
-      'vegetariano', 'vegano'
-    ];
-
-    if (!validCategories.includes(category)) {
+    // Validar se a categoria não está vazia (remover validação de lista fixa)
+    if (!category.trim()) {
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Categoria inválida' 
+          error: 'Categoria não pode estar vazia' 
         },
         { status: 400 }
       );
@@ -202,10 +197,11 @@ export async function POST(request: NextRequest) {
     
     // Se for erro de validação do Mongoose
     if (error instanceof Error && error.name === 'ValidationError') {
+      console.error('Erro de validação Mongoose:', error.message);
       return NextResponse.json(
         { 
           success: false, 
-          error: 'Dados inválidos fornecidos' 
+          error: 'Dados inválidos fornecidos: ' + error.message 
         },
         { status: 400 }
       );

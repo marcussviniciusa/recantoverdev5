@@ -112,7 +112,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { username, email, password, role } = body;
+    const { username, email, password, role, phone, status } = body;
 
     // Validação dos dados obrigatórios
     if (!username || !email || !password || !role) {
@@ -136,6 +136,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validar status se fornecido
+    if (status && !['ativo', 'inativo'].includes(status)) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Status deve ser "ativo" ou "inativo"' 
+        },
+        { status: 400 }
+      );
+    }
+
     // Verificar se usuário já existe
     const existingUser = await User.findOne({
       $or: [{ username }, { email }]
@@ -151,15 +162,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hash da senha
-    const hashedPassword = await bcrypt.hash(password, 12);
-
-    // Criar novo usuário
+    // Criar novo usuário (o hash da senha será feito automaticamente pelo middleware do modelo)
     const newUser = new User({
       username,
       email,
-      password: hashedPassword,
-      role
+      password, // Senha sem hash - será processada pelo middleware
+      role,
+      phone: phone || undefined,
+      status: status || 'ativo'
     });
 
     await newUser.save();

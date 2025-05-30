@@ -56,7 +56,7 @@ export default function PedidosPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('createdAt');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const { emitEvent } = useSocket();
+  const { emitEvent, socket } = useSocket();
 
   // Buscar pedidos
   const fetchOrders = async () => {
@@ -70,7 +70,19 @@ export default function PedidosPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setOrders(data.orders || []);
+        const allOrders = data.data?.orders || data.orders || [];
+        
+        // Filtrar pedidos válidos (com tableId e waiterId)
+        const validOrders = allOrders.filter((order: Order) => 
+          order.tableId && 
+          order.waiterId && 
+          order.tableId.number !== undefined && 
+          order.waiterId.username !== undefined
+        );
+        
+        setOrders(validOrders);
+      } else {
+        console.error('Erro na resposta da API:', response.status, response.statusText);
       }
     } catch (error) {
       console.error('Erro ao buscar pedidos:', error);
@@ -104,9 +116,6 @@ export default function PedidosPage() {
 
         // Emitir evento via Socket.IO
         emitEvent('order_status_updated', updatedOrder.order);
-
-        // Feedback visual
-        alert(`Pedido atualizado para: ${statusLabels[newStatus as keyof typeof statusLabels]}`);
       }
     } catch (error) {
       console.error('Erro ao atualizar pedido:', error);
@@ -124,8 +133,8 @@ export default function PedidosPage() {
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
         return (
-          order.tableId.number.toString().includes(searchLower) ||
-          order.waiterId.username.toLowerCase().includes(searchLower) ||
+          (order.tableId?.number?.toString().includes(searchLower)) ||
+          (order.waiterId?.username?.toLowerCase().includes(searchLower)) ||
           order._id.toLowerCase().includes(searchLower) ||
           order.items.some(item => 
             item.productName.toLowerCase().includes(searchLower)
@@ -140,8 +149,8 @@ export default function PedidosPage() {
       
       switch (sortBy) {
         case 'table':
-          aValue = a.tableId.number;
-          bValue = b.tableId.number;
+          aValue = a.tableId?.number || 0;
+          bValue = b.tableId?.number || 0;
           break;
         case 'total':
           aValue = a.totalAmount;
@@ -166,6 +175,29 @@ export default function PedidosPage() {
   useEffect(() => {
     fetchOrders();
   }, []);
+
+  // Escutar eventos Socket.IO
+  useEffect(() => {
+    if (socket) {
+      const handleNewOrder = (newOrder: Order) => {
+        setOrders(prev => [newOrder, ...prev]);
+      };
+
+      const handleOrderStatusUpdate = (updatedOrder: Order) => {
+        setOrders(prev => prev.map(order => 
+          order._id === updatedOrder._id ? updatedOrder : order
+        ));
+      };
+
+      socket.on('order_created', handleNewOrder);
+      socket.on('order_status_updated', handleOrderStatusUpdate);
+
+      return () => {
+        socket.off('order_created', handleNewOrder);
+        socket.off('order_status_updated', handleOrderStatusUpdate);
+      };
+    }
+  }, [socket]);
 
   // Atualizar automaticamente a cada 30 segundos
   useEffect(() => {
@@ -246,7 +278,6 @@ export default function PedidosPage() {
 
           {/* Filtros */}
           <div className="flex flex-wrap gap-3">
-            {/* Filtro por status */}
             <select
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
@@ -259,7 +290,6 @@ export default function PedidosPage() {
               <option value="entregue">Entregue</option>
             </select>
 
-            {/* Ordenação */}
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
@@ -271,7 +301,6 @@ export default function PedidosPage() {
               <option value="status">Status</option>
             </select>
 
-            {/* Ordem */}
             <button
               onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
               className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500"
@@ -279,7 +308,6 @@ export default function PedidosPage() {
               {sortOrder === 'asc' ? '↑' : '↓'}
             </button>
 
-            {/* Refresh */}
             <button
               onClick={fetchOrders}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500"
@@ -311,7 +339,7 @@ export default function PedidosPage() {
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-4">
                 <div className="flex items-center gap-4 mb-3 lg:mb-0">
                   <div className="text-lg font-semibold text-gray-900">
-                    Mesa {order.tableId.number}
+                    Mesa {order.tableId?.number || 'N/A'}
                   </div>
                   <span className={`px-3 py-1 rounded-full text-sm font-medium border ${statusColors[order.status]}`}>
                     {statusLabels[order.status]}
@@ -334,7 +362,7 @@ export default function PedidosPage() {
                   {/* Botão de ação */}
                   {nextStatus[order.status] && (
                     <button
-                      onClick={() => updateOrderStatus(order._id, nextStatus[order.status]!)}
+                      onClick={() => updateOrderStatus(order._id, nextStatus[order.status] as string)}
                       className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 transition-colors"
                     >
                       → {statusLabels[nextStatus[order.status] as keyof typeof statusLabels]}
@@ -372,7 +400,7 @@ export default function PedidosPage() {
                   <div className="space-y-2 text-sm">
                     <div>
                       <span className="text-gray-500">Garçom:</span>
-                      <span className="ml-2 font-medium">{order.waiterId.username}</span>
+                      <span className="ml-2 font-medium">{order.waiterId?.username || 'N/A'}</span>
                     </div>
                     <div>
                       <span className="text-gray-500">Itens:</span>

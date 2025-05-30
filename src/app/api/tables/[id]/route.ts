@@ -83,7 +83,7 @@ export async function PUT(
 
     const { id } = await params;
     const body = await request.json();
-    const { number, capacity, status, currentCustomers, assignedWaiter } = body;
+    const { number, capacity, status, currentCustomers, assignedWaiter, identification } = body;
 
     // Buscar mesa
     const table = await Table.findById(id);
@@ -194,6 +194,11 @@ export async function PUT(
           }
         }
 
+        // Atualizar identificação se fornecida
+        if (identification !== undefined) {
+          table.identification = identification;
+        }
+
         table.openedAt = new Date();
         table.closedAt = undefined;
       }
@@ -201,6 +206,7 @@ export async function PUT(
       // Se está sendo liberada
       if (status === 'disponivel') {
         table.currentCustomers = undefined;
+        table.identification = undefined;
         table.assignedWaiter = undefined;
         table.closedAt = new Date();
       }

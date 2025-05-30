@@ -99,7 +99,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { username, email, password, role } = body;
+    const { username, email, password, role, phone, status } = body;
 
     // Verificar se usuário existe
     const existingUser = await User.findById(params.id);
@@ -119,6 +119,17 @@ export async function PUT(
         { 
           success: false, 
           error: 'Role deve ser "garcom" ou "recepcionista"' 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Validar status se fornecido
+    if (status && !['ativo', 'inativo'].includes(status)) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Status deve ser "ativo" ou "inativo"' 
         },
         { status: 400 }
       );
@@ -150,6 +161,8 @@ export async function PUT(
     if (username) updateData.username = username;
     if (email) updateData.email = email;
     if (role) updateData.role = role;
+    if (phone !== undefined) updateData.phone = phone;
+    if (status) updateData.status = status;
 
     // Hash da nova senha se fornecida
     if (password) {

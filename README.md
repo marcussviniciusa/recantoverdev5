@@ -75,6 +75,23 @@ O sistema estará disponível em: **http://localhost:3000**
 
 ## 👤 Primeiro Acesso
 
+### 🚀 **Método Rápido - Script Automático**
+```bash
+# Criar usuário administrador automaticamente
+npm run admin:create
+```
+
+**Credenciais criadas:**
+- 📧 **Email**: `admin@recantoverde.com`
+- 🔑 **Senha**: `admin123`
+- 🎭 **Role**: recepcionista
+
+### 🔗 **Acessar o Sistema**
+1. **URL**: http://localhost:3000/auth/login?role=recepcionista
+2. **Login** com as credenciais acima
+3. ⚠️ **ALTERE A SENHA** em Configurações → Perfil
+
+### 🛠️ **Método Manual**
 Na primeira execução, o sistema estará vazio. Para começar a usar:
 
 1. **Acesse a tela de login**: http://localhost:3000/auth/login?role=recepcionista
@@ -99,6 +116,8 @@ Na primeira execução, o sistema estará vazio. Para começar a usar:
 - `npm run build` - Gera build de produção
 - `npm start` - Inicia servidor de produção
 - `npm run lint` - Executa linting do código
+- `npm run admin:create` - Cria usuário administrador
+- `npm run db:reset` - Reseta banco de dados
 
 ## 📋 APIs Principais
 

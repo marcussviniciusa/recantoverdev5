@@ -45,6 +45,8 @@ export default function AdminCardapio() {
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [showNewCategoryInput, setShowNewCategoryInput] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
   const [formData, setFormData] = useState<ProductFormData>({
     name: '',
     description: '',
@@ -147,12 +149,39 @@ export default function AdminCardapio() {
         fat: 0
       });
     }
+    setShowNewCategoryInput(false);
+    setNewCategoryName('');
     setShowModal(true);
   };
 
   const closeModal = () => {
     setShowModal(false);
     setEditingProduct(null);
+    setShowNewCategoryInput(false);
+    setNewCategoryName('');
+  };
+
+  const handleCategoryChange = (value: string) => {
+    if (value === 'nova') {
+      setShowNewCategoryInput(true);
+      setFormData({...formData, category: ''});
+    } else {
+      setShowNewCategoryInput(false);
+      setNewCategoryName('');
+      setFormData({...formData, category: value});
+    }
+  };
+
+  const handleNewCategorySubmit = () => {
+    if (newCategoryName.trim()) {
+      const trimmedName = newCategoryName.trim();
+      setFormData({...formData, category: trimmedName});
+      setShowNewCategoryInput(false);
+      // Adicionar a nova categoria à lista local temporariamente
+      if (!categories.includes(trimmedName)) {
+        setCategories([...categories, trimmedName]);
+      }
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -508,7 +537,7 @@ export default function AdminCardapio() {
                     <select
                       required
                       value={formData.category}
-                      onChange={(e) => setFormData({...formData, category: e.target.value})}
+                      onChange={(e) => handleCategoryChange(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       <option value="">Selecione uma categoria</option>
@@ -519,6 +548,47 @@ export default function AdminCardapio() {
                       ))}
                       <option value="nova">+ Nova Categoria</option>
                     </select>
+                    
+                    {/* Campo para nova categoria */}
+                    {showNewCategoryInput && (
+                      <div className="mt-3">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nome da Nova Categoria *
+                        </label>
+                        <div className="flex space-x-2">
+                          <input
+                            type="text"
+                            value={newCategoryName}
+                            onChange={(e) => setNewCategoryName(e.target.value)}
+                            placeholder="Digite o nome da categoria"
+                            className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                            onKeyPress={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                handleNewCategorySubmit();
+                              }
+                            }}
+                          />
+                          <button
+                            type="button"
+                            onClick={handleNewCategorySubmit}
+                            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                          >
+                            ✓
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowNewCategoryInput(false);
+                              setNewCategoryName('');
+                            }}
+                            className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 

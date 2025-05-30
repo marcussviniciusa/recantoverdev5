@@ -21,11 +21,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/admin/dashboard/page.js"
     ],
-    "/auth/login/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/auth/login/page.js"
-    ],
     "/api/tables/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -46,25 +41,20 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/payments/route.js"
     ],
-    "/admin/mesas/page": [
+    "/admin/pedidos/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/mesas/page.js"
+      "static/chunks/app/admin/pedidos/page.js"
     ],
-    "/admin/usuarios/page": [
+    "/admin/relatorios/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/admin/usuarios/page.js"
+      "static/chunks/app/admin/relatorios/page.js"
     ],
-    "/api/users/route": [
+    "/api/reports/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/users/route.js"
-    ],
-    "/api/auth/login/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/auth/login/route.js"
+      "static/chunks/app/api/reports/route.js"
     ]
   }
 }

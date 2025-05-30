@@ -6,8 +6,18 @@ import Order from '../../../../models/Order';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'recanto_verde_super_secret_key_2025';
 
+// ⚠️ DEPRECATED: Esta API está obsoleta!
+// Use a nova API por mesa: /api/payments/mesa/[tableId]
+// 
+// Sistema antigo: Um pagamento por pedido
+// Sistema novo: Um pagamento por mesa (todos os pedidos)
+//
+// Esta API será removida em versões futuras
+
 export async function POST(request) {
   try {
+    console.warn('⚠️ DEPRECATED API USAGE: /api/payments - Use /api/payments/mesa/[tableId] instead');
+    
     // Verificar autenticação
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -26,102 +36,13 @@ export async function POST(request) {
       return NextResponse.json({ success: false, error: 'Token inválido' }, { status: 401 });
     }
 
-    // Conectar ao banco
-    await connectDB();
-
-    const body = await request.json();
-    const { orderId, totalAmount, paymentMethods, tipAmount, splitBetween, notes } = body;
-
-    // Validações
-    if (!orderId || !paymentMethods || paymentMethods.length === 0) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Dados obrigatórios não fornecidos' 
-      }, { status: 400 });
-    }
-
-    // Verificar se o pedido existe
-    const order = await Order.findById(orderId);
-    if (!order) {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Pedido não encontrado' 
-      }, { status: 404 });
-    }
-
-    // Verificar se o pedido já foi pago
-    if (order.status === 'pago') {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Este pedido já foi pago' 
-      }, { status: 400 });
-    }
-
-    // Verificar se o pedido está entregue
-    if (order.status !== 'entregue') {
-      return NextResponse.json({ 
-        success: false, 
-        error: 'Só é possível registrar pagamento de pedidos entregues' 
-      }, { status: 400 });
-    }
-
-    // Validar métodos de pagamento
-    const totalMethodsAmount = paymentMethods.reduce((sum, method) => sum + method.amount, 0);
-    const expectedTotal = (totalAmount + (tipAmount || 0)) / (splitBetween || 1);
-    
-    if (Math.abs(totalMethodsAmount - expectedTotal) > 0.01) {
-      return NextResponse.json({ 
-        success: false, 
-        error: `Total dos métodos de pagamento (${totalMethodsAmount.toFixed(2)}) não confere com o valor esperado (${expectedTotal.toFixed(2)})` 
-      }, { status: 400 });
-    }
-
-    // Validar métodos de pagamento individuais
-    for (const method of paymentMethods) {
-      if (!method.method || method.amount <= 0) {
-        return NextResponse.json({ 
-          success: false, 
-          error: 'Todos os métodos de pagamento devem ter tipo e valor válidos' 
-        }, { status: 400 });
-      }
-
-      const validMethods = ['dinheiro', 'cartao_debito', 'cartao_credito', 'pix', 'vale_refeicao'];
-      if (!validMethods.includes(method.method)) {
-        return NextResponse.json({ 
-          success: false, 
-          error: `Método de pagamento inválido: ${method.method}` 
-        }, { status: 400 });
-      }
-    }
-
-    // Criar registro de pagamento
-    const payment = new Payment({
-      orderId: orderId,
-      tableId: order.table,
-      totalAmount: totalAmount,
-      paymentMethods: paymentMethods.map(method => ({
-        type: method.method,
-        amount: method.amount,
-        description: method.description || ''
-      })),
-      status: 'pago',
-      paidAt: new Date()
-    });
-
-    await payment.save();
-
-    // Atualizar status do pedido
-    order.status = 'pago';
-    order.payment = payment._id;
-    await order.save();
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        payment: payment,
-        message: 'Pagamento registrado com sucesso'
-      }
-    });
+    // Retornar erro informando sobre a nova API
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Esta API está deprecated. Use /api/payments/mesa/[tableId] para o novo sistema de pagamentos por mesa.',
+      deprecated: true,
+      newEndpoint: '/api/payments/mesa/[tableId]'
+    }, { status: 410 }); // 410 Gone
 
   } catch (error) {
     console.error('Erro ao registrar pagamento:', error);
@@ -134,6 +55,8 @@ export async function POST(request) {
 
 export async function GET(request) {
   try {
+    console.warn('⚠️ DEPRECATED API USAGE: /api/payments - Use /api/payments/mesa/[tableId] instead');
+    
     // Verificar autenticação
     const authHeader = request.headers.get('authorization');
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -175,9 +98,11 @@ export async function GET(request) {
       filter.status = status;
     }
 
+    // Buscar apenas pagamentos do novo sistema (com orderIds array)
+    filter.orderIds = { $exists: true, $type: 'array' };
+
     const payments = await Payment.find(filter)
-      .populate('tableId', 'number capacity')
-      .populate('orderId', 'items totalAmount status')
+      .populate('tableId', 'number capacity identification status')
       .sort({ paidAt: -1 });
 
     return NextResponse.json({
@@ -185,7 +110,8 @@ export async function GET(request) {
       data: {
         payments: payments,
         total: payments.length
-      }
+      },
+      message: 'Retornando apenas pagamentos do novo sistema por mesa'
     });
 
   } catch (error) {
